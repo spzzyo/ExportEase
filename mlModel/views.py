@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .ml_model import predict  
+
 from .forms import ImageUploadForm
 
 
