@@ -1,0 +1,442 @@
+{% extends "layouts/base.html" %}
+{% csrf_token %}
+{% block title %} Tables {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}
+<style>
+    
+
+    .two-columns {
+            display: flex;
+            gap: 20px; /* Space between the two columns */
+            padding: 20px;
+        }
+
+        .column {
+            flex: 1; /* Each column takes equal width */
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-height: 300px; /* Optional: Set a minimum height */
+        }
+
+        .chat-container {
+            max-width: 500px;
+           
+            padding: 10px;
+        }
+
+        .chat-header {
+            text-align: center;
+            padding: 10px;
+          
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+        }
+
+        .chat-logout {
+            text-align: right;
+            padding: 10px;
+        }
+
+       
+    .parameter-tag {
+        display: inline-block;
+        background-color: #f5f5f5;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: bold;
+        color: #061a6a;
+        border: 1px solid #061a6a;
+    }
+
+    .parameter-tag::after {
+        content: ' ✅';
+        color: green;
+    }
+
+
+        .chat-logout a {
+            text-decoration: none;
+            color: #061a6a;
+            font-weight: bold;
+        }
+
+        .chat-logout a:hover {
+            text-decoration: underline;
+        }
+
+        .chat__item__container {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 10px;
+            height: 300px;
+            max-height: 300px;
+            /* Set a maximum height for the chat container */
+            overflow-y: auto;
+            /* Add a vertical scrollbar when needed */
+        }
+
+        .chat-input-container {
+            display: flex;
+            align-items: center;
+        }
+
+        #id_message_send_input {
+            flex: 1;
+            /* Take up available space */
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #id_message_send_button {
+            padding: 5px 10px;
+            background-color: #061a6a;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .chat-message {
+            background-color: #e4f9f5;
+            border-radius: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            position: relative;
+        }
+
+        .chat-message.right {
+                background-color: black;
+            width: 80%;
+            float: right;
+            clear: both;
+            margin-left: auto;
+            margin-right: 0;
+        }
+
+        .chat-message.left {
+            background-color: #061a6a;
+            width: 80%;
+            float: left;
+            clear: both;
+            margin-left: 0;
+            margin-right: auto;
+        }
+
+        .chat-message span {
+            font-weight: bold;
+            color: white;
+        }
+
+        .message-timestamp {
+            font-size: 10px;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+
+        .message-username {
+            font-size: 12px;
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+        }
+    </style>
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="panel-header panel-header-sm">
+</div>
+
+<div class="info-header" style="display: flex; justify-content: space-between; align-items: flex-start; padding: 20px; border-bottom: 1px solid #ddd; margin-bottom: 20px;">
+    <!-- Left Section: Carrier Info -->
+    <div style="text-align: left;">
+        <h2 style="margin: 0; font-size: 1.5em; font-weight: bold;">{{ carrier_name }}</h2>
+        <p style="margin: 5px 0; font-size: 1em;">
+            <strong>From:</strong> {{ pol }} <br>
+            <strong>To:</strong> {{ pod }} <br>
+            <strong>Vessel ID:</strong> {{ vessel_id }} <br>
+            <strong>Departure Date:</strong> {{ departure_date }}
+        </p>
+    </div>
+
+    
+    <!-- Right Section: Summarizer -->
+    <div style="text-align: left; max-width: 300px; margin-right: 50%;">
+        <h3 style="margin: 0 0 10px 0; font-size: 1.2em; font-weight: bold;">
+            Summarizer:
+        </h3>
+        
+        <p id="summary-text" style="display: none; min-width: 40%;">{{ summary }}</p>
+
+        <div id="loader" style="display: none; margin-top: 10px;">
+            <i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i> Loading...
+        </div>
+    
+        <button id="summary-button" style="
+            display: flex; 
+            margin-top: 10px;
+            align-items: center; 
+            justify-content: center; 
+            background-color: #061a6a; 
+            color: #fff; 
+            border: none; 
+            border-radius: 5px; 
+            padding: 10px 20px; 
+            font-size: 16px; 
+            cursor: pointer;">
+            <i class="fas fa-book" style="margin-right: 10px;"></i> Load Summary
+        </button>
+    </div>
+</div>
+
+<div class="two-columns">
+    <div class="column">
+<div class="chat-container">
+
+        
+    <div class="chat-header">
+        <h1>Chat Here</h1>
+    </div>
+
+    <div class="chat__item__container" id="id_chat_item_container">
+        <!-- Messages will be displayed here with a scrollbar -->
+    </div>
+    <div class="chat-input-container">
+        <input type="text" id="id_message_send_input" placeholder="Type your message..." />
+        <button type="submit" id="id_message_send_button"><i class="fas fa-paper-plane"></i> Send</button>
+    </div>
+
+    <button id="protected-call-button" style="
+    display: flex; 
+    margin: 20px;
+    align-items: center; 
+    justify-content: center; 
+    background-color: #061a6a; 
+    color: #fff; 
+    border: none; 
+    border-radius: 5px; 
+    padding: 10px 20px; 
+    font-size: 16px; 
+    cursor: pointer;
+">
+    <i class="fas fa-phone" style="margin-right: 10px; "></i> Get on a Protected Call
+</button>
+
+
+
+</div>
+</div>
+
+<!-- CSS for Parameter Tags -->
+<div class="column">
+<div class="negotiation-parameters">
+    <h3 style="font-size: 1.5em; font-weight: bold; margin-bottom: 10px;">Negotiation Parameters Discussed:</h3>
+    
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <!-- Pricing Structure -->
+        <div>
+            <h4 style="margin: 0; font-size: 1.2em;">Pricing Structure:</h4>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                <span class="parameter-tag">Base Rate ✅</span>
+                <span class="parameter-tag">Surcharges ✅</span>
+                <span class="parameter-tag">Seasonal Charges ✅</span>
+            </div>
+        </div>
+        
+        <!-- Inclusions -->
+        <div>
+            <h4 style="margin: 0; font-size: 1.2em;">Inclusions:</h4>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                <span class="parameter-tag">Sea Freight Handling ✅</span>
+                <span class="parameter-tag">Basic Handling ✅</span>
+            </div>
+        </div>
+        
+        <!-- Exclusions -->
+        <div>
+            <h4 style="margin: 0; font-size: 1.2em;">Exclusions:</h4>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                <span class="parameter-tag">Customs ✅</span>
+                <span class="parameter-tag">Packaging ✅</span>
+                <span class="parameter-tag">Warehouse Pickup ✅</span>
+            </div>
+        </div>
+        
+        <!-- Contingency Plans -->
+        <div>
+            <h4 style="margin: 0; font-size: 1.2em;">Contingency Plans:</h4>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                <span class="parameter-tag">Delay Protocol ✅</span>
+                <span class="parameter-tag">Return Policy ✅</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generate Contract Button -->
+    <button style="
+        display: block; 
+        margin: 20px auto 0 auto; 
+        padding: 10px 20px; 
+        font-size: 16px; 
+        font-weight: bold; 
+        background-color: #061a6a; 
+        color: #fff; 
+        border: none; 
+        border-radius: 5px; 
+        cursor: pointer;">
+        Generate Contract ✨
+    </button>
+</div>
+</div>
+
+</div>
+
+<div class="card-footer text-center">
+    <div class="card-footer text-center">
+        <a 
+        href = "{% url 'category:category-detail' 2 %}"
+            class="btn btn-primary w-50">
+            Proceed to Next Step
+        </a>
+    </div>
+</div>
+
+{% endblock content %}
+{% block javascripts %}
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+
+    
+    const username = urlParams.get('username');
+    const carrierName = urlParams.get('carrier_name');
+
+    const chatSocket = new WebSocket(
+        "ws://" + window.location.host + "/ws/chat/?username=" + username + "&carrier_name=" + carrierName
+    );
+    chatSocket.onopen = function (e) {
+        console.log("The connection was set up successfully!");
+    };
+    chatSocket.onclose = function (e) {
+        console.log("Something unexpected happened!");
+    };
+    document.querySelector("#id_message_send_input").focus();
+    document.querySelector("#id_message_send_input").onkeyup = function (e) {
+        if (e.keyCode == 13) {
+            document.querySelector("#id_message_send_button").click();
+        }
+    };
+    document.querySelector("#id_message_send_button").onclick = function (e) {
+        var messageInput = document.querySelector("#id_message_send_input").value;
+        var currentTime = new Date();
+        var time = currentTime.toLocaleTimeString();
+        chatSocket.send(JSON.stringify({
+            message: messageInput,
+            username: "{{request.user.username}}",
+            time: time
+        }));
+    };
+    chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        var messageContainer = document.querySelector("#id_chat_item_container");
+        var div = document.createElement("div");
+        div.className = (data.username === "{{request.user.username}}") ? "chat-message right" : "chat-message left";
+        div.innerHTML = `<div class="message-content">
+            <span class="message-username">${data.username.charAt(0).toUpperCase() + data.username.slice(1)}</span>
+            <span class="message-text">${data.message}</span>
+            <span class="message-timestamp">${data.time}</span>
+        </div>`;
+        document.querySelector("#id_message_send_input").value = "";
+        messageContainer.appendChild(div);
+        // Scroll to the bottom of the chat container
+        messageContainer.scrollTop = messageContainer.scrollHeight;
+    };
+</script>
+
+<script>
+    document.querySelector("#protected-call-button").addEventListener("click", function() {
+        fetch("{% url 'make_protected_call' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert("Call initiated successfully! Call SID: " + data.call_sid);
+            } else {
+                alert("Error initiating call: " + data.message);
+            }
+        })
+        .catch(error => console.error("Error making call:", error));
+    });
+</script>
+
+<script>
+    document.querySelector("#summary-button").addEventListener("click", function () {
+        const summaryText = document.querySelector("#summary-text");
+        const button = document.querySelector("#summary-button");
+        const loader = document.querySelector("#loader");
+
+       
+        loader.style.display = "block"; 
+        button.style.display = "none"; 
+
+        setTimeout(function () {
+            if (summaryText.style.display === "none") {
+                summaryText.style.display = "block"; 
+                button.innerHTML = '<i class="fas fa-book" style="margin-right: 10px;"></i> Hide Summary'; 
+            }
+
+            loader.style.display = "none";
+            button.style.display = "flex"; 
+        }, 1500); 
+    });
+</script>
+
+<script>
+    document.getElementById("generateContractButton").addEventListener("click", function() {
+        
+        const name = request.username ; 
+        const importer = "ABC Importers";
+        const pod = "Mumbai";
+        const pol = "New York";
+        const date = "2024-11-01";
+
+        // Construct the URL with parameters
+        const url = `/generate_contract/?name=${encodeURIComponent(name)}&importer=${encodeURIComponent(importer)}&pod=${encodeURIComponent(pod)}&pol=${encodeURIComponent(pol)}&date=${encodeURIComponent(date)}`;
+
+        // Make a GET request to your Django view
+        fetch(url)
+            .then(response => response.json())  // assuming the response is in JSON format
+            .then(data => {
+                if (data.success) {
+                    // If the document is generated, show the link to download
+                    alert('Contract generated successfully!');
+                    window.location.href = data.pdf_url;  // Redirect to the PDF download link
+                } else {
+                    // Handle errors
+                    alert('Error generating contract: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Something went wrong!');
+            });
+    });
+</script>
+
+{% endblock javascripts %}
