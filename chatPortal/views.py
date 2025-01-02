@@ -180,8 +180,8 @@ def make_protected_call(request):
     if request.method == "POST":
         try:
             # Twilio credentials
-            account_sid = "AC53ccbc7b90c6e3e019895efadc19e6d3"
-            auth_token = "77c8d07cf6820fa4a279e256c0f4aa32"
+            account_sid = ""
+            auth_token = ""
             client = Client(account_sid, auth_token)
 
             # Create the call
@@ -189,7 +189,7 @@ def make_protected_call(request):
                 method="GET",
                 status_callback_method="POST",
                 url="http://demo.twilio.com/docs/voice.xml",
-                to="+919833914068", 
+                to="+91123456789",    #add own number
                 from_="+12406604030",
             )
 
